@@ -358,14 +358,30 @@ class BotController(object):
                          "marker",
                          "/camera_rgb_optical_frame")
 
-    def update_yaml(self):
-        fname = "output/test.yaml"
+    
+
+def update_yaml(id, trans):
+
+        q=(trans.transform.rotation.x,trans.transform.rotation.y,trans.transform.rotation.z,trans.transform.rotation.w)
+        euler=tf.transformations.euler_from_quaternion(q)
+        roll= euler[0]
+        pitch=euler[1]
+        yaw=euler[2]
+        print('roll:',roll)
+        print('pitch:',pitch) 
+        print('yaw:',yaw)
+
+        fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
         stream = open(fname, 'r')
         data = yaml.load(stream)
-        data['aruco_marker_0']['xyz'] = [0, 10, 0]
-        data['aruco_marker_0']['rpy'] = [1, 1, 1]
+        data['aruco_marker_'+str(id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+        data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
         with open(fname, 'w') as yaml_file:
             yaml_file.write(yaml.dump(data, default_flow_style=False))
+        print('yaml file updated')
+
+
+
 
 class Data:
     FLAG_ARUCO_MARKER_DETECTED = False
@@ -385,6 +401,7 @@ def fiducial_tranform_detected(data):
     listener = tf2_ros.TransformListener(tfBuffer)
     
     if data.transforms:
+               
         fiducial_id = "fiducial_" + str(data.transforms[0].fiducial_id)
         rospy.loginfo("fiducial_tranform_detected for :" + fiducial_id)
         Data.FLAG_ARUCO_MARKER_DETECTED = True
@@ -411,12 +428,11 @@ def fiducial_tranform_detected(data):
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 pass
         
+
 def listeners():
     rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, fiducial_tranform_detected)
 
 if __name__ == '__main__':
-    
-    SLEEP_INTERVAL = 5
     try:
         rospy.init_node('bot_controller')
         rospy.loginfo('Press Ctrl c to exit')
