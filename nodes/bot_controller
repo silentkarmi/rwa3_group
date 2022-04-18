@@ -382,7 +382,7 @@ def fiducial_tranform_detected(data):
             trans = tfBuffer.lookup_transform('odom',
             fiducial_id, 
             rospy.Time.now(),
-            rospy.Duration(1.0))
+            rospy.Duration(5.0))
             
             print_partition()
             rospy.loginfo("ARUCO MARKER in WORLD POSE:")
