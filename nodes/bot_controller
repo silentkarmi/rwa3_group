@@ -20,7 +20,7 @@ def compute_distance(x1, y1, x2, y2):
     return sqrt(((x2-x1)**2) + ((y2-y1)**2))
 
 def print_partition():
-    rospy.loginfo("="*11)
+    rospy.loginfo("="*12)
 
 class BotController(object):
     """
@@ -207,7 +207,7 @@ class BotController(object):
             angular_velocity = -0.2
         else:
             angular_velocity = 0.0
-        rospy.sleep(2.0)
+        # rospy.sleep(2.0)
         t0 = rospy.Time.now().to_sec()
         # keep rotating the robot until the desired relative rotation is reached
         while not rospy.is_shutdown():
@@ -220,7 +220,7 @@ class BotController(object):
             current_angle = (t_current - t0) * angular_velocity
             # rospy.loginfo("current angle: {}".format(current_angle))
             if abs(current_angle) >= radians(abs(relative_angle)):
-                rospy.loginfo("Relative angle reached")
+                # rospy.loginfo("Relative angle reached")
                 angular_velocity = 0
                 self.run(0, 0)
                 break
@@ -233,7 +233,7 @@ class BotController(object):
             goal_x (float): x position
             goal_y (float): y position
         """
-        rospy.loginfo("Go to goal ({}, {})".format(goal_x, goal_y))
+        rospy.loginfo("GO TO GOAL: ({}, {})".format(goal_x, goal_y))
         # get position and yaw from transform
         self.get_transform()
 
@@ -249,8 +249,8 @@ class BotController(object):
                 angle_to_goal = atan2(
                     goal_y - self.current_y_pos, goal_x - self.current_x_pos)
 
-                rospy.loginfo("Distance to goal: {}".format(distance_to_goal))
-                rospy.loginfo("Angle to goal: {}".format(angle_to_goal))
+                # rospy.loginfo("Distance to goal: {}".format(distance_to_goal))
+                # rospy.loginfo("Angle to goal: {}".format(angle_to_goal))
 
                 # Make the robot rotate the correct direction
                 if angle_to_goal < 0:
@@ -276,7 +276,7 @@ class BotController(object):
                 self._velocity_publisher.publish(move_cmd)
                 self._rate.sleep()
             else:
-                rospy.loginfo("Goal reached")
+                # rospy.loginfo("Goal reached")
                 break
 
     def run(self, linear, angular):
@@ -367,6 +367,17 @@ class BotController(object):
         with open(fname, 'w') as yaml_file:
             yaml_file.write(yaml.dump(data, default_flow_style=False))
 
+class Data:
+    FLAG_ARUCO_MARKER_DETECTED = False
+    ARUCO_MARKER_TRANSFORM = None
+    LOOK_UP_TRANSFORM_GOING_ON = False
+    # PAUSE_CALLBACK = False
+    
+    @staticmethod
+    def reset():
+        Data.FLAG_ARUCO_MARKER_DETECTED = False
+        Data.ARUCO_MARKER_TRANSFORM = None
+        rospy.loginfo("DATA_RESET")
 
 def fiducial_tranform_detected(data):
     
@@ -374,38 +385,81 @@ def fiducial_tranform_detected(data):
     listener = tf2_ros.TransformListener(tfBuffer)
     
     if data.transforms:
-               
         fiducial_id = "fiducial_" + str(data.transforms[0].fiducial_id)
         rospy.loginfo("fiducial_tranform_detected for :" + fiducial_id)
+        Data.FLAG_ARUCO_MARKER_DETECTED = True
         
-        try:
-            trans = tfBuffer.lookup_transform('odom',
-            fiducial_id, 
-            rospy.Time.now(),
-            rospy.Duration(5.0))
-            
-            print_partition()
-            rospy.loginfo("ARUCO MARKER in WORLD POSE:")
-            rospy.loginfo(trans)
-            print_partition()
-            
-        # This will give you the coordinate of the child in the parent frame
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            pass
+        if (Data.FLAG_ARUCO_MARKER_DETECTED and 
+            Data.ARUCO_MARKER_TRANSFORM is None and
+            not Data.LOOK_UP_TRANSFORM_GOING_ON):
+            try:
+                Data.LOOK_UP_TRANSFORM_GOING_ON = True
+                trans = tfBuffer.lookup_transform('odom',
+                fiducial_id, 
+                rospy.Time.now(),
+                rospy.Duration(8.0))
+                
+                print_partition()
+                rospy.loginfo("ARUCO MARKER in WORLD POSE:")
+                rospy.loginfo(trans)
+                Data.ARUCO_MARKER_TRANSFORM = trans
+                print_partition()
+                
+                Data.LOOK_UP_TRANSFORM_GOING_ON = False
+                
+            # This will give you the coordinate of the child in the parent frame
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+                pass
         
-
 def listeners():
     rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, fiducial_tranform_detected)
 
 if __name__ == '__main__':
+    
+    SLEEP_INTERVAL = 5
     try:
         rospy.init_node('bot_controller')
         rospy.loginfo('Press Ctrl c to exit')
         listeners()
         
         controller = BotController()
+        
+        # ========= ARUCO MARKER 1 ==================
+        print_partition()
         controller.go_to_goal(5, 0)
-        controller.rotate(190)
-        rospy.sleep(200)
+        Data.reset()
+        rospy.loginfo("ROTATE TILL ARUCO MARKER DETECT")
+        while not Data.FLAG_ARUCO_MARKER_DETECTED:
+            controller.rotate(10)
+        
+        while Data.ARUCO_MARKER_TRANSFORM is None:
+            pass
+              
+        rospy.loginfo("Update the value in YAML File:")
+        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+        Data.reset()    
+        print_partition()
+        
+        # rospy.sleep(SLEEP_INTERVAL)
+        #=============================================
+        
+        # ========= ARUCO MARKER 2 ==================
+        controller.go_to_goal(3, -6)
+        Data.reset()
+        rospy.loginfo("ROTATE TILL ARUCO MARKER DETECT")
+        while not Data.FLAG_ARUCO_MARKER_DETECTED:
+            controller.rotate(10)
+        
+        while Data.ARUCO_MARKER_TRANSFORM is None:
+            pass
+              
+        rospy.loginfo("Update the value in YAML File:")
+        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+        Data.reset()    
+        print_partition()
+        
+        # rospy.sleep(SLEEP_INTERVAL)
+        #=============================================
+        
     except rospy.ROSInterruptException:
         rospy.loginfo("Action terminated.")
