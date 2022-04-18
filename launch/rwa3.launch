@@ -38,4 +38,6 @@
   
   <!-- start robot state publisher on tf-->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
+  <node name="bot_controller" pkg="rwa3_group" type="bot_controller" output="screen" />
 </launch>
