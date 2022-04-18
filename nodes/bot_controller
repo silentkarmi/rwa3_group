@@ -96,7 +96,7 @@ class BotController(object):
 
         self.current_x_pos = msg.pose.pose.position.x
         self.current_y_pos = msg.pose.pose.position.y
-        self.current_orientation = euler_from_quaternion(quaternion)
+        self.current_orientation = tf.transformations.euler_from_quaternion(quaternion)
 
     def get_transform(self):
         """
@@ -358,14 +358,6 @@ class BotController(object):
                          "marker",
                          "/camera_rgb_optical_frame")
 
-    def update_yaml(self):
-        fname = "output/test.yaml"
-        stream = open(fname, 'r')
-        data = yaml.load(stream)
-        data['aruco_marker_0']['xyz'] = [0, 10, 0]
-        data['aruco_marker_0']['rpy'] = [1, 1, 1]
-        with open(fname, 'w') as yaml_file:
-            yaml_file.write(yaml.dump(data, default_flow_style=False))
 
 
 def fiducial_tranform_detected(data):
@@ -382,17 +374,37 @@ def fiducial_tranform_detected(data):
             trans = tfBuffer.lookup_transform('odom',
             fiducial_id, 
             rospy.Time.now(),
-            rospy.Duration(1.0))
+            rospy.Duration(5.0))
             
             print_partition()
             rospy.loginfo("ARUCO MARKER in WORLD POSE:")
             rospy.loginfo(trans)
+            #update_yaml(fiducial_id, trans)
             print_partition()
             
         # This will give you the coordinate of the child in the parent frame
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             pass
         
+def update_yaml(id, trans):
+
+        q=(trans.transform.rotation.x,trans.transform.rotation.y,trans.transform.rotation.z,trans.transform.rotation.w)
+        euler=tf.transformations.euler_from_quaternion(q)
+        roll= euler[0]
+        pitch=euler[1]
+        yaw=euler[2]
+        print('roll:',roll)
+        print('pitch:',pitch) 
+        print('yaw:',yaw)
+
+        fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
+        stream = open(fname, 'r')
+        data = yaml.load(stream)
+        data['aruco_marker_'+str(id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+        data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
+        with open(fname, 'w') as yaml_file:
+            yaml_file.write(yaml.dump(data, default_flow_style=False))
+        print('yaml file updated')
 
 def listeners():
     rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, fiducial_tranform_detected)
