@@ -361,25 +361,30 @@ class BotController(object):
     
 
 def update_yaml(id, trans):
-        rospy.loginfo('yaml update function being called')
-        q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
-        euler=tf.transformations.euler_from_quaternion(q)
-        roll= euler[0]
-        pitch=euler[1]
-        yaw=euler[2]
-        rospy.loginfo('Converted to RPY ')
+    parent = lambda path_name: os.path.dirname(path_name)
+    
+    rospy.loginfo('yaml update function being called')
+    q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
+    euler=tf.transformations.euler_from_quaternion(q)
+    roll= euler[0]
+    pitch=euler[1]
+    yaw=euler[2]
+    rospy.loginfo('Converted to RPY ')
 
-        fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
-        stream = open(fname, 'r')
-        data = yaml.load(stream)
-        data['aruco_marker_'+str(id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
-        data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
-        with open(fname, 'w') as yaml_file:
-            yaml_file.write(yaml.dump(data, default_flow_style=False))
-        rospy.loginfo('yaml file updated')
-
-
-
+    current_file = os.path.abspath(__file__)
+    group_dir = parent(parent((current_file)))
+    # rospy.loginfo(group_dir)
+    output_path = "/output/output.yaml"
+    fname = group_dir + output_path
+    # rospy.loginfo(fname)
+    
+    stream = open(fname, 'r')
+    data = yaml.load(stream)
+    data['aruco_marker_'+str(id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+    data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
+    with open(fname, 'w') as yaml_file:
+        yaml_file.write(yaml.dump(data, default_flow_style=False))
+    rospy.loginfo('yaml file updated')
 
 class Data:
     FLAG_ARUCO_MARKER_DETECTED = False
