@@ -361,15 +361,12 @@ class BotController(object):
     
 
 def update_yaml(id, trans):
-
-        q=(trans.transform.rotation.x,trans.transform.rotation.y,trans.transform.rotation.z,trans.transform.rotation.w)
+        q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
         euler=tf.transformations.euler_from_quaternion(q)
         roll= euler[0]
         pitch=euler[1]
         yaw=euler[2]
-        print('roll:',roll)
-        print('pitch:',pitch) 
-        print('yaw:',yaw)
+        print('Converted to RPY ')
 
         fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
         stream = open(fname, 'r')
@@ -453,6 +450,7 @@ if __name__ == '__main__':
               
         rospy.loginfo("Update the value in YAML File:")
         rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+        update_yaml(1, Data.ARUCO_MARKER_TRANSFORM)
         Data.reset()    
         print_partition()
         
@@ -471,6 +469,7 @@ if __name__ == '__main__':
               
         rospy.loginfo("Update the value in YAML File:")
         rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+       
         Data.reset()    
         print_partition()
         
