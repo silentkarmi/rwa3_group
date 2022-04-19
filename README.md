@@ -1,6 +1,11 @@
-# rwa3_group
-Baseline package for RWA3.
+# rwa3_group2
 
+This assignment detects aruco marker and update them in the output/output.yaml file
+
+- To run the program:
+roslaunch rwa3_group2 rwa3.launch
+
+-------- GENERAL INSTRUCTIONS ----------
 In the following instructions, we assume your catkin workspace is named enpm809e_ws and is located in your home directory.
 
 - `cd ~/enpm809e_ws/src`
@@ -20,6 +25,3 @@ We need the Waffle model for this assignment. Make sure you have the following l
 Start the environment to make sure the ArUco markers appear in the environment.
 - `roslaunch rwa3_group rwa3.launch`
 
-Your environment should be similar as the one shown in the following picture (1 robot + 3 ArUco markers).
-
-![RWA3 World](figure/rwa3_world.jpg)
