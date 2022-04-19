@@ -369,7 +369,7 @@ class Data:
     FLAG_ARUCO_MARKER_DETECTED = False
     ARUCO_MARKER_TRANSFORM = None
     LOOK_UP_TRANSFORM_GOING_ON = False
-    # PAUSE_CALLBACK = False
+    
     tfBuffer = None
     listener = None
     
