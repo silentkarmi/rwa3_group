@@ -361,12 +361,13 @@ class BotController(object):
     
 
 def update_yaml(id, trans):
+        rospy.loginfo('yaml update function being called')
         q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
         euler=tf.transformations.euler_from_quaternion(q)
         roll= euler[0]
         pitch=euler[1]
         yaw=euler[2]
-        print('Converted to RPY ')
+        rospy.loginfo('Converted to RPY ')
 
         fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
         stream = open(fname, 'r')
@@ -375,7 +376,7 @@ def update_yaml(id, trans):
         data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
         with open(fname, 'w') as yaml_file:
             yaml_file.write(yaml.dump(data, default_flow_style=False))
-        print('yaml file updated')
+        rospy.loginfo('yaml file updated')
 
 
 
@@ -455,7 +456,8 @@ if __name__ == '__main__':
             pass
               
         rospy.loginfo("ARUCO MARKER 1 in WORLD POSE:")
-        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)   
+        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+        update_yaml(0, Data.ARUCO_MARKER_TRANSFORM)   
         print_partition()
         
         # rospy.sleep(SLEEP_INTERVAL)
@@ -473,6 +475,7 @@ if __name__ == '__main__':
               
         rospy.loginfo("ARUCO MARKER 2 in WORLD POSE:")
         rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)   
+        update_yaml(1, Data.ARUCO_MARKER_TRANSFORM)
         print_partition()
         #=============================================
         
@@ -487,7 +490,8 @@ if __name__ == '__main__':
             pass
               
         rospy.loginfo("ARUCO MARKER 3 in WORLD POSE:")
-        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)   
+        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
+        update_yaml(2, Data.ARUCO_MARKER_TRANSFORM)   
         print_partition()
         #=============================================
         
