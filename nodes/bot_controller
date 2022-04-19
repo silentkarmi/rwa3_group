@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from faulthandler import disable
 from numpy import empty
 import rospy
 from math import sqrt
@@ -30,7 +31,7 @@ class BotController(object):
     """
 
     def __init__(self, rate=4):
-        
+
         self._velocity_publisher = rospy.Publisher(
             'cmd_vel', Twist, queue_size=10)
         rospy.Subscriber("odom", Odometry, self.odom_callback)
@@ -85,7 +86,7 @@ class BotController(object):
 
     # def rospy_sleep(self):
     #     self._rate.sleep()
-    
+
     def odom_callback(self, msg):
         """
         Callback function for the Topic odom
@@ -360,8 +361,6 @@ class BotController(object):
                          "marker",
                          "/camera_rgb_optical_frame")
 
-    
-
 def update_yaml(f_id, trans):
     """
     summary:
@@ -373,12 +372,13 @@ def update_yaml(f_id, trans):
         f_id (_int_):  ID of detected fiducial marker _
         trans (_float_): Position values (x,y,z) and Orientation values( roll, pitch, yaw)
     """
+    # pylint: disable=unnecessary-lambda
 
     parent = lambda path_name: os.path.dirname(path_name)
-    
     rospy.loginfo('yaml update function being called')
-    q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
-    euler=tf.transformations.euler_from_quaternion(q)
+    quat=(trans.transform.rotation.x, trans.transform.rotation.y,
+       trans.transform.rotation.z, trans.transform.rotation.w)
+    euler=tf.transformations.euler_from_quaternion(quat)
     roll= euler[0]
     pitch=euler[1]
     yaw=euler[2]
@@ -390,12 +390,13 @@ def update_yaml(f_id, trans):
     output_path = "/output/output.yaml"
     fname = group_dir + output_path
     # rospy.loginfo(fname)
-    
-    stream = open(fname, 'r')
+    stream = open(fname, 'r',encoding='UTF-8')
     data = yaml.load(stream)
-    data['aruco_marker_'+str(f_id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
+    data['aruco_marker_'+str(f_id)]['xyz'] = [trans.transform.translation.x,
+                                              trans.transform.translation.y,
+                                              trans.transform.translation.z]
     data['aruco_marker_'+str(f_id)]['rpy'] = [roll, pitch, yaw]
-    with open(fname, 'w') as yaml_file:
+    with open(fname, 'w',encoding='UTF-8') as yaml_file:
         yaml_file.write(yaml.dump(data, default_flow_style=False))
     rospy.loginfo('yaml file updated')
 
@@ -408,17 +409,20 @@ class Data:
     FLAG_ARUCO_MARKER_DETECTED = False
     ARUCO_MARKER_TRANSFORM = None
     LOOK_UP_TRANSFORM_GOING_ON = False
-    
     tfBuffer = None
     listener = None
-    
+
     @staticmethod
-    def initialize():
+    def initialize()-> None:
+        """initializes tf Buffer
+        """
         Data.tfBuffer = tf2_ros.Buffer()
         Data.listener = tf2_ros.TransformListener(Data.tfBuffer)
-    
+
     @staticmethod
-    def reset():
+    def reset()-> None:
+        """resets the Data contained
+        """
         Data.FLAG_ARUCO_MARKER_DETECTED = False
         Data.ARUCO_MARKER_TRANSFORM = None
         rospy.loginfo("DATA_RESET")
@@ -427,35 +431,35 @@ def fiducial_tranform_detected(data):
     """
     summary:
     Callback for fiducial marker detector
-    """ 
+    """
     if data.transforms:
-        
         fiducial_id = "fiducial_" + str(data.transforms[0].fiducial_id)
         # rospy.loginfo("fiducial_tranform_detected for :" + fiducial_id)
         Data.FLAG_ARUCO_MARKER_DETECTED = True
-        
-        if (Data.FLAG_ARUCO_MARKER_DETECTED and 
+        if (Data.FLAG_ARUCO_MARKER_DETECTED and
             Data.ARUCO_MARKER_TRANSFORM is None and
             not Data.LOOK_UP_TRANSFORM_GOING_ON):
             try:
                 Data.LOOK_UP_TRANSFORM_GOING_ON = True
+
                 trans = Data.tfBuffer.lookup_transform('odom',
-                fiducial_id, 
-                rospy.Time.now(),
-                rospy.Duration(2.0))
-                
+                                                       fiducial_id,
+                                                       rospy.Time.now(),
+                                                       rospy.Duration(2.0))
+
                 print_partition()
                 # rospy.loginfo("ARUCO MARKER in WORLD POSE:")
                 # rospy.loginfo(trans)
                 Data.ARUCO_MARKER_TRANSFORM = trans
                 print_partition()
-                
+
                 Data.LOOK_UP_TRANSFORM_GOING_ON = False
-                
+
             # This will give you the coordinate of the child in the parent frame
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            except (tf2_ros.LookupException,
+                    tf2_ros.ConnectivityException,
+                    tf2_ros.ExtrapolationException):
                 pass
-        
 
 def listeners():
     """
@@ -470,9 +474,9 @@ if __name__ == '__main__':
         rospy.loginfo('Press Ctrl c to exit')
         Data.initialize()
         listeners()
-        
+
         controller = BotController()
-        
+
         # ========= ARUCO MARKER 1 ==================
         print_partition()
         controller.go_to_goal(5, 0)
@@ -480,49 +484,48 @@ if __name__ == '__main__':
         rospy.loginfo("ROTATE TILL ARUCO MARKER DETECT")
         while not Data.FLAG_ARUCO_MARKER_DETECTED:
             controller.rotate(10)
-        
         while Data.ARUCO_MARKER_TRANSFORM is None:
             pass
-              
+
         rospy.loginfo("ARUCO MARKER 1 in WORLD POSE:")
         rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
-        update_yaml(0, Data.ARUCO_MARKER_TRANSFORM)   
+        update_yaml(0, Data.ARUCO_MARKER_TRANSFORM)
         print_partition()
-        
+
         # rospy.sleep(SLEEP_INTERVAL)
         #=============================================
-        
+
         # ========= ARUCO MARKER 2 ==================
         controller.go_to_goal(3, -6)
         Data.reset()
         rospy.loginfo("ROTATE TILL ARUCO MARKER DETECT")
         while not Data.FLAG_ARUCO_MARKER_DETECTED:
             controller.rotate(10)
-        
+
         while Data.ARUCO_MARKER_TRANSFORM is None:
             pass
-              
+
         rospy.loginfo("ARUCO MARKER 2 in WORLD POSE:")
-        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)   
+        rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
         update_yaml(1, Data.ARUCO_MARKER_TRANSFORM)
         print_partition()
         #=============================================
-        
+
         # ========= ARUCO MARKER 3 ==================
         controller.go_to_goal(3, 6)
         Data.reset()
         rospy.loginfo("ROTATE TILL ARUCO MARKER DETECT")
         while not Data.FLAG_ARUCO_MARKER_DETECTED:
             controller.rotate(10)
-        
+
         while Data.ARUCO_MARKER_TRANSFORM is None:
             pass
-              
+
         rospy.loginfo("ARUCO MARKER 3 in WORLD POSE:")
         rospy.loginfo(Data.ARUCO_MARKER_TRANSFORM)
-        update_yaml(2, Data.ARUCO_MARKER_TRANSFORM)   
+        update_yaml(2, Data.ARUCO_MARKER_TRANSFORM)
         print_partition()
         #=============================================
-        
+
     except rospy.ROSInterruptException:
         rospy.loginfo("Action terminated.")
