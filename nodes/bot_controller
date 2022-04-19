@@ -20,6 +20,8 @@ def compute_distance(x1, y1, x2, y2):
     return sqrt(((x2-x1)**2) + ((y2-y1)**2))
 
 def print_partition():
+    """prints the parition
+    """
     rospy.loginfo("="*12)
 
 class BotController(object):
@@ -358,30 +360,12 @@ class BotController(object):
                          "marker",
                          "/camera_rgb_optical_frame")
 
-    
-
-def update_yaml(id, trans):
-        rospy.loginfo('yaml update function being called')
-        q=(trans.transform.rotation.x, trans.transform.rotation.y, trans.transform.rotation.z, trans.transform.rotation.w)
-        euler=tf.transformations.euler_from_quaternion(q)
-        roll= euler[0]
-        pitch=euler[1]
-        yaw=euler[2]
-        rospy.loginfo('Converted to RPY ')
-
-        fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
-        stream = open(fname, 'r')
-        data = yaml.load(stream)
-        data['aruco_marker_'+str(id)]['xyz'] = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z]
-        data['aruco_marker_'+str(id)]['rpy'] = [roll, pitch, yaw]
-        with open(fname, 'w') as yaml_file:
-            yaml_file.write(yaml.dump(data, default_flow_style=False))
-        rospy.loginfo('yaml file updated')
-
-
-
-
 class Data:
+    """
+    summary:
+    The is a Static class which we use to put data in callbacks and
+    retrieve in the main code.
+    """
     FLAG_ARUCO_MARKER_DETECTED = False
     ARUCO_MARKER_TRANSFORM = None
     LOOK_UP_TRANSFORM_GOING_ON = False
@@ -400,11 +384,43 @@ class Data:
         Data.ARUCO_MARKER_TRANSFORM = None
         rospy.loginfo("DATA_RESET")
 
+def update_yaml(f_id, trans):
+    """
+    summary:
+    A function to update the yaml file with the position and
+    orientation values for each fiducial marker.
+
+
+    Args:
+        f_id (_int_):  ID of detected fiducial marker _
+        trans (_float_): Position values (x,y,z) and Orientation values( roll, pitch, yaw)
+    """
+    quat=(trans.transform.rotation.x, trans.transform.rotation.y,
+       trans.transform.rotation.z, trans.transform.rotation.w)
+    euler=tf.transformations.euler_from_quaternion(quat)
+    roll= euler[0]
+    pitch=euler[1]
+    yaw=euler[2]
+    rospy.loginfo('Quaternion converted to RPY ')
+
+    fname = "/home/pradnya/rwa3_ws/src/rwa3_group/output/output.yaml"
+    stream = open(fname, 'r')
+    data = yaml.load(stream)
+    data['aruco_marker_'+str(f_id)]['xyz'] = [trans.transform.translation.x,
+                                              trans.transform.translation.y,
+                                              trans.transform.translation.z]
+    data['aruco_marker_'+str(f_id)]['rpy'] = [roll, pitch, yaw]
+    with open(fname, 'w') as yaml_file:
+        yaml_file.write(yaml.dump(data, default_flow_style=False))
+    rospy.loginfo('yaml file updated')
+
 def fiducial_tranform_detected(data):
-   
-   
+    """
+    summary:
+    Callback for fiducial marker detector
+    """ 
     if data.transforms:
-               
+        
         fiducial_id = "fiducial_" + str(data.transforms[0].fiducial_id)
         # rospy.loginfo("fiducial_tranform_detected for :" + fiducial_id)
         Data.FLAG_ARUCO_MARKER_DETECTED = True
@@ -430,9 +446,12 @@ def fiducial_tranform_detected(data):
             # This will give you the coordinate of the child in the parent frame
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 pass
-        
 
 def listeners():
+    """
+    summary:
+    Lists all the subscribers.
+    """
     rospy.Subscriber("/fiducial_transforms", FiducialTransformArray, fiducial_tranform_detected)
 
 if __name__ == '__main__':
